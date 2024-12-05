@@ -1,0 +1,78 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafdrop-cm
+  labels:
+    app: kafdrop
+    group: amqp
+data:
+  KAFKA_BROKERCONNECT: "kafka-0.kafka-headless.messaging.svc.cluster.local:9092,kafka-1.kafka-headless.messaging.svc.cluster.local:9092,kafka-2.kafka-headless.messaging.svc.cluster.local:9092,kafka-3.kafka-headless.messaging.svc.cluster.local:9092,kafka-4.kafka-headless.messaging.svc.cluster.local:9092"
+  SERVER_SERVLET_CONTEXTPATH: "/"
+  JVM_OPTS: "-Xms128M -Xmx256M"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafdrop-svc
+  labels:
+    app: kafdrop
+    group: amqp
+spec:
+  type: ClusterIP
+  selector:
+    app: kafdrop
+  ports:
+    - port: 80
+      targetPort: 9000
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafdrop-sts
+  labels:
+    app: kafdrop
+    group: amqp
+spec:
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: kafdrop
+  serviceName: kafdrop-svc
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: kafdrop
+        group: amqp
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - kafdrop
+              topologyKey: topology.kubernetes.io/zone
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: kafdrop
+          image: "obsidiandynamics/kafdrop:3.28.0-SNAPSHOT"
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 200m
+              memory: 256Mi
+          ports:
+            - containerPort: 9000
+          envFrom:
+            - configMapRef:
+                name: kafdrop-cm
