@@ -1,50 +1,15 @@
 ---
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: kafka
-  namespace: kafka
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: kafka
-  name: kafka-headless
-  namespace: kafka
-spec:
-  clusterIP: None
-  clusterIPs:
-  - None
-  internalTrafficPolicy: Cluster
-  ipFamilies:
-  - IPv4
-  ipFamilyPolicy: SingleStack
-  ports:
-  - name: tcp-kafka-int
-    port: 9092
-    protocol: TCP
-    targetPort: tcp-kafka-int
-  - name: tcp-kafka-ctrl
-    port: 29093
-    protocol: TCP
-    targetPort: tcp-kafka-ctrl
-  selector:
-    app: kafka
-  sessionAffinity: None
-  type: ClusterIP
----
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   labels:
     app: kafka
+    group: messaging
   name: kafka
-  namespace: kafka
 spec:
   podManagementPolicy: Parallel
   replicas: 3
-  revisionHistoryLimit: 10
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: kafka
@@ -77,7 +42,7 @@ spec:
               apiVersion: v1
               fieldPath: metadata.name
         name: kafka
-        image: docker.io/confluentinc/confluent-local:7.5.0
+        image: docker.io/confluentinc/confluent-local:7.8.0
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 9092
@@ -88,8 +53,8 @@ spec:
           protocol: TCP
         resources:
           limits:
-            cpu: "1"
-            memory: 1400Mi
+            cpu: 500m
+            memory: 512Mi
           requests:
             cpu: 250m
             memory: 512Mi
@@ -105,15 +70,25 @@ spec:
         terminationMessagePolicy: File
         volumeMounts:
         - mountPath: /etc/kafka
-          name: config
+          name: kraft-data
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext:
         fsGroup: 1000
       terminationGracePeriodSeconds: 30
-      volumes:
-      - emptyDir: {}
-        name: config
   updateStrategy:
     type: RollingUpdate
+  volumeClaimTemplates:
+  - metadata:
+      name: kraft-data
+      labels:
+        app: kafka
+        group: messaging
+    spec:
+      accessModes: 
+      - "ReadWriteOnce"
+      storageClassName: "microk8s-hostpath"
+      resources:
+        requests:
+          storage: 1Gi
