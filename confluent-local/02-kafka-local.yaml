@@ -25,11 +25,10 @@ spec:
         - sh
         - -exc
         - |
-          export CLUSTER_ID="6PMpHYL9QkeyXRj9Nrp4KA" && \
+          export CLUSTER_ID="NlBNcEhZTDlRa2V5WFJqOU5ycDRLQQo" && \
           export KAFKA_NODE_ID=${HOSTNAME##*-} 
-          export KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://${POD_NAME}.kafka-headless.kafka.svc.cluster.local:9092
-          export KAFKA_CONTROLLER_QUORUM_VOTERS="0@kafka-0.kafka-headless.kafka.svc.cluster.local:29093,1@kafka-1.kafka-headless.kafka.svc.cluster.local:29093,2@kafka-2.kafka-headless.kafka.svc.cluster.local:29093" 
-
+          export KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://${POD_NAME}.kafka-headless.messaging.svc.cluster.local:9092
+          export KAFKA_CONTROLLER_QUORUM_VOTERS="0@kafka-0.kafka-headless.messaging.svc.cluster.local:29093,1@kafka-1.kafka-headless.messaging.svc.cluster.local:29093,2@kafka-2.kafka-headless.messaging.svc.cluster.local:29093" 
           exec /etc/confluent/docker/run
         env:
         - name: KAFKA_CONTROLLER_LISTENER_NAMES
